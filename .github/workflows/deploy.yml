@@ -25,15 +25,9 @@ jobs:
         run: npm run build
 
       - name: Deploy dist/ to deploy branch
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cd dist
-          git init
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add .
-          git commit -m "Deploy build"
-          git branch -M deploy
-          git remote add origin https://x-access-token:${GITHUB_TOKEN}@github.com/jackyorsen/mamorumoebel.git
-          git push -f origin deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: deploy
+          publish_dir: ./dist
+          force_orphan: true
