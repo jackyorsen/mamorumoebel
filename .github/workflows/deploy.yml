@@ -30,4 +30,4 @@ jobs:
           branch: deploy
           folder: dist
           clean: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
