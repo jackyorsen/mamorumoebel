@@ -1,11 +1,10 @@
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16', // Fallback version ensuring compatibility
-});
+// Stripe initialisieren (ohne feste apiVersion → sicher & kompatibel)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export default async function handler(req: any, res: any) {
-  // Sicherstellen, dass nur POST-Anfragen akzeptiert werden
+  // Nur POST erlauben
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -20,17 +19,18 @@ export default async function handler(req: any, res: any) {
 
     // PaymentIntent erzeugen
     const paymentIntent = await stripe.paymentIntents.create({
-      amount,         // Beispiel: 4999 für €49.99
-      currency,       // "eur" oder "chf"
-      metadata: metadata || {}, // z.B. Produkt-ID, Warenkorb, E-Mail usw.
+      amount,
+      currency,
+      metadata: metadata || {},
       automatic_payment_methods: {
-        enabled: true, // ermöglicht TWINT, Karte, Apple Pay etc.
+        enabled: true,
       },
     });
 
     return res.status(200).json({
       clientSecret: paymentIntent.client_secret,
     });
+
   } catch (error: any) {
     console.error("Stripe Error:", error);
     res.status(500).json({ error: error.message });
