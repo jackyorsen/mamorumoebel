@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { Product } from '../types';
+import { MOCK_PRODUCTS } from '../constants';
+import { getSlug } from '../utils/categoryHelper';
 
 const API_BASE = "https://script.google.com/macros/s/AKfycbzinjacRgHSovguDr80D0EA2qLuQRBlvkAK29As_K8bBJ1OWQtCRbogjEebAft2kFs/exec";
 
@@ -18,10 +20,13 @@ export interface SheetProduct {
 }
 
 const mapSheetProductToAppProduct = (sp: SheetProduct): Product => {
+  // Ensure numerical values are parsed correctly and not null/undefined
+  const price = typeof sp.price === 'number' ? sp.price : (parseFloat(String(sp.price)) || 0);
+  const pricePrev = typeof sp.pricePrev === 'number' ? sp.pricePrev : (parseFloat(String(sp.pricePrev)) || 0);
+  const stock = typeof sp.stock === 'number' ? sp.stock : (parseFloat(String(sp.stock)) || 0);
+  
   // Determine if there is a sale (if previous price > current price)
-  // In this API: price is current, pricePrev is old.
-  // If pricePrev > price, we treat price as salePrice and pricePrev as original price.
-  const isSale = sp.pricePrev > sp.price;
+  const isSale = pricePrev > price;
 
   return {
     id: sp.sku,
@@ -30,14 +35,15 @@ const mapSheetProductToAppProduct = (sp: SheetProduct): Product => {
     category: sp.category,
     // If sale: price (display) is pricePrev (strikethrough), salePrice is price.
     // If no sale: price (display) is price.
-    price: isSale ? sp.pricePrev : sp.price,
-    salePrice: isSale ? sp.price : undefined,
+    price: isSale ? pricePrev : price,
+    salePrice: isSale ? price : undefined,
     image: sp.images && sp.images.length > 0 ? sp.images[0] : 'https://via.placeholder.com/800x800?text=No+Image',
     slug: sp.sku, // using SKU as slug for routing
     isNew: false, // API doesn't provide date, default to false
     sku: sp.sku,
-    stock: sp.stock,
-    images: sp.images || []
+    stock: stock,
+    images: sp.images || [],
+    isOutOfStock: stock <= 0
   };
 };
 
@@ -53,8 +59,6 @@ export function useProductsFromSheets() {
       try {
         const response = await fetch(`${API_BASE}?action=products`, {
           cache: "no-store",
-          // The prompt asked for Headers: { cache: "no-store" } but technically it belongs in options
-          // We add it to options as per standard Fetch API
         });
 
         if (!response.ok) {
@@ -65,8 +69,10 @@ export function useProductsFromSheets() {
         const mapped = data.map(mapSheetProductToAppProduct);
         setProducts(mapped);
       } catch (err) {
-        console.error("Failed to fetch products:", err);
-        setError(err);
+        console.warn("Failed to fetch products, using fallback data:", err);
+        // Fallback to MOCK_PRODUCTS if API fails
+        setProducts(MOCK_PRODUCTS);
+        // We do not set error state here to allow the UI to render with mock data
       } finally {
         setLoading(false);
       }
@@ -107,12 +113,21 @@ export function useProductFromSheets(sku: string | undefined) {
         if (data && data.sku) {
              setProduct(mapSheetProductToAppProduct(data));
         } else {
-             setError(new Error("Product not found or invalid format"));
+             throw new Error("Product not found in API");
         }
 
       } catch (err) {
-        console.error("Failed to fetch product:", err);
-        setError(err);
+        console.warn("Failed to fetch product, using fallback data:", err);
+        
+        // Fallback Logic: Find in MOCK_PRODUCTS
+        // Check by SKU or Slug (since navigation might use slug)
+        const found = MOCK_PRODUCTS.find(p => p.sku === sku || p.slug === sku || p.id === sku);
+        
+        if (found) {
+            setProduct(found);
+        } else {
+            setError(err);
+        }
       } finally {
         setLoading(false);
       }

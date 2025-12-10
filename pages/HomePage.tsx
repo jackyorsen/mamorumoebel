@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '../components/Button';
@@ -10,8 +10,17 @@ export const HomePage: React.FC = () => {
   // Use the new Google Sheets API Hook
   const { products, loading } = useProductsFromSheets();
   
-  // Slice the first 4 items for the bestseller list logic
-  const bestsellers = products.slice(0, 4);
+  // Slice the first 4 items for the bestseller list logic, but ENSURE OOS items are pushed to end first
+  const bestsellers = useMemo(() => {
+    if (!products) return [];
+    // Sort logic: In-stock first
+    const sorted = [...products].sort((a, b) => {
+        const aOOS = a.isOutOfStock ? 1 : 0;
+        const bOOS = b.isOutOfStock ? 1 : 0;
+        return aOOS - bOOS;
+    });
+    return sorted.slice(0, 4);
+  }, [products]);
 
   // Category Mock Data (Static for now)
   const categories = [

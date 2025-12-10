@@ -13,6 +13,7 @@ export interface Product {
   sku?: string;
   stock?: number;
   images?: string[];
+  isOutOfStock?: boolean;
 }
 
 export interface CartItem extends Product {

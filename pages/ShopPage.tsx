@@ -14,27 +14,30 @@ export const ShopPage: React.FC = () => {
     if (!products) return [];
     const sorted = [...products];
     
-    switch (sortValue) {
-      case 'price-asc':
-        sorted.sort((a, b) => {
-           const priceA = a.salePrice ?? a.price;
-           const priceB = b.salePrice ?? b.price;
-           return priceA - priceB;
-        });
-        break;
-      case 'price-desc':
-        sorted.sort((a, b) => {
-           const priceA = a.salePrice ?? a.price;
-           const priceB = b.salePrice ?? b.price;
-           return priceB - priceA;
-        });
-        break;
-      case 'default':
-      default:
-        // Assume default order from API is desired, or sort by name/date if available
-        // API doesn't have date, so we keep API order.
-        break;
-    }
+    sorted.sort((a, b) => {
+        // 1. OOS always last
+        const aOOS = a.isOutOfStock ? 1 : 0;
+        const bOOS = b.isOutOfStock ? 1 : 0;
+        if (aOOS !== bOOS) return aOOS - bOOS;
+
+        // 2. User selected sort
+        switch (sortValue) {
+          case 'price-asc': {
+             const priceA = a.salePrice ?? a.price;
+             const priceB = b.salePrice ?? b.price;
+             return priceA - priceB;
+          }
+          case 'price-desc': {
+             const priceA = a.salePrice ?? a.price;
+             const priceB = b.salePrice ?? b.price;
+             return priceB - priceA;
+          }
+          case 'default':
+          default:
+            return 0;
+        }
+    });
+
     return sorted;
   }, [products, sortValue]);
 

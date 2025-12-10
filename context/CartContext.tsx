@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Product, CartItem } from '../types';
 
@@ -23,6 +24,13 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const closeCart = () => setIsCartOpen(false);
 
   const addToCart = (product: Product) => {
+    // 8. NEVER allow adding OOS products to cart
+    if (product.isOutOfStock) {
+        // Option: Show toast error here if your app has a toast system
+        // alert("Dieser Artikel ist derzeit nicht verfügbar."); // fallback
+        return;
+    }
+
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {

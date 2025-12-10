@@ -1,12 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBag, Menu, X, Search, User, Phone, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Menu, X, Search, User, Phone, ChevronDown, ChevronRight, Plus, Minus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useProductsFromSheets } from '../hooks/useSheetsApi';
+import { getCategoriesByMainGroup, MAIN_GROUPS, getSlug } from '../utils/categoryHelper';
+import { MegaMenu } from './MegaMenu';
 
 export const Header: React.FC = () => {
   const { cartCount, openCart } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMegaMenuHovered, setIsMegaMenuHovered] = useState(false);
+  // Mobile accordion state: stores the name of the expanded main group
+  const [expandedMobileGroup, setExpandedMobileGroup] = useState<string | null>(null);
+
   const location = useLocation();
+  
+  // Fetch products to build the menu structure
+  const { products } = useProductsFromSheets();
+  
+  // Memoize the menu structure to avoid recalculation on every render
+  const menuStructure = useMemo(() => {
+    return getCategoriesByMainGroup(products);
+  }, [products]);
 
   // Scroll Lock für Mobile Menu
   useEffect(() => {
@@ -17,19 +32,24 @@ export const Header: React.FC = () => {
     }
   }, [isMenuOpen]);
 
-  // Menüpunkte gemäß Anforderung
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Shop', path: '/shop' },
-    { name: 'Kategorien', path: '/shop' }, // Verlinkt vorerst auf Shop
-    { name: 'Kontakt', path: '#' },        // Platzhalter
-  ];
+  const isActive = (path: string) => location.pathname === path;
 
-  const isActive = (path: string) => location.pathname === path && path !== '/shop';
+  // Helpers for hover interactions
+  const handleMouseEnter = () => setIsMegaMenuHovered(true);
+  const handleMouseLeave = () => setIsMegaMenuHovered(false);
+
+  // Toggle mobile group
+  const toggleMobileGroup = (group: string) => {
+    if (expandedMobileGroup === group) {
+      setExpandedMobileGroup(null);
+    } else {
+      setExpandedMobileGroup(group);
+    }
+  };
 
   return (
     <>
-      {/* Top Bar (Optional, Woodmart style often has this) */}
+      {/* Top Bar */}
       <div className="bg-white border-b border-gray-100 text-gray-500 text-[12px] py-2 px-4 hidden md:block">
         <div className="max-w-[1320px] mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-6">
@@ -52,7 +72,7 @@ export const Header: React.FC = () => {
 
       {/* Main Sticky Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
-        <div className="max-w-[1320px] mx-auto px-4 h-20 flex items-center justify-between">
+        <div className="max-w-[1320px] mx-auto px-4 h-20 flex items-center justify-between relative">
           
           {/* ZONE 1 (Left): Logo (Desktop) / Burger (Mobile) */}
           <div className="flex-1 flex items-center justify-start">
@@ -72,23 +92,55 @@ export const Header: React.FC = () => {
           </div>
 
           {/* ZONE 2 (Center): Menu (Desktop) / Logo (Mobile) */}
-          <div className="flex-[2] flex justify-center">
+          <div className="flex-[2] flex justify-center h-full">
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8 lg:space-x-10">
-              {navLinks.map((link, index) => (
-                <Link
-                  key={index}
-                  to={link.path}
-                  className={`text-[13px] font-bold uppercase tracking-widest transition-colors py-2 relative group ${
-                     isActive(link.path) ? 'text-[#2b4736]' : 'text-gray-600 hover:text-[#2b4736]'
-                  }`}
-                >
-                  {link.name}
-                  <span className={`absolute bottom-0 left-0 h-[2px] bg-[#2b4736] transition-all duration-300 ${
-                      isActive(link.path) ? 'w-full' : 'w-0 group-hover:w-full'
-                  }`}></span>
-                </Link>
-              ))}
+            <nav className="hidden md:flex items-center space-x-8 lg:space-x-10 h-full">
+              
+              <Link
+                to="/"
+                className={`text-[13px] font-bold uppercase tracking-widest transition-colors py-2 relative group h-full flex items-center ${
+                   isActive('/') ? 'text-[#2b4736]' : 'text-gray-600 hover:text-[#2b4736]'
+                }`}
+              >
+                Home
+              </Link>
+
+              {/* Mega Menu Trigger */}
+              <div 
+                className="h-full flex items-center"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                  <Link
+                    to="/shop"
+                    className={`text-[13px] font-bold uppercase tracking-widest transition-colors py-2 relative group flex items-center ${
+                        location.pathname.startsWith('/shop') || location.pathname.startsWith('/kategorie') ? 'text-[#2b4736]' : 'text-gray-600 hover:text-[#2b4736]'
+                    }`}
+                  >
+                    Produkte
+                    <ChevronDown className={`w-3 h-3 ml-1 transition-transform duration-200 ${isMegaMenuHovered ? 'rotate-180' : ''}`} />
+                    <span className={`absolute bottom-0 left-0 h-[3px] bg-[#2b4736] transition-all duration-300 ${
+                        (isMegaMenuHovered || location.pathname.startsWith('/shop')) ? 'w-full' : 'w-0'
+                    }`}></span>
+                  </Link>
+
+                  {/* Mega Menu Overlay */}
+                  <MegaMenu 
+                    structure={menuStructure} 
+                    isVisible={isMegaMenuHovered} 
+                    onClose={() => setIsMegaMenuHovered(false)}
+                  />
+              </div>
+
+              <Link
+                to="/shop"
+                className={`text-[13px] font-bold uppercase tracking-widest transition-colors py-2 relative group h-full flex items-center ${
+                   isActive('/shop') && !location.pathname.startsWith('/kategorie') ? 'text-[#2b4736]' : 'text-gray-600 hover:text-[#2b4736]'
+                }`}
+              >
+                Alle Artikel
+              </Link>
+
             </nav>
 
             {/* Mobile Logo */}
@@ -99,17 +151,13 @@ export const Header: React.FC = () => {
 
           {/* ZONE 3 (Right): Icons */}
           <div className="flex-1 flex justify-end items-center gap-1 sm:gap-3">
-            {/* Search Icon */}
             <button className="hidden md:flex p-2 text-gray-600 hover:text-[#2b4736] transition-transform hover:scale-105">
               <Search className="w-5 h-5" />
             </button>
-
-            {/* User Icon */}
             <button className="hidden md:flex p-2 text-gray-600 hover:text-[#2b4736] transition-transform hover:scale-105">
               <User className="w-5 h-5" />
             </button>
 
-            {/* Cart Icon */}
             <button 
               onClick={openCart} 
               className="p-2 text-gray-800 hover:text-[#2b4736] transition-colors relative group"
@@ -153,16 +201,59 @@ export const Header: React.FC = () => {
         {/* Drawer Links */}
         <div className="flex-1 overflow-y-auto">
           <nav className="flex flex-col">
-            {navLinks.map((link, index) => (
-              <Link
-                key={index}
-                to={link.path}
+            <Link
+                to="/"
                 onClick={() => setIsMenuOpen(false)}
                 className="px-6 py-4 text-sm font-bold uppercase tracking-wide text-gray-700 hover:bg-gray-50 hover:text-[#2b4736] border-b border-gray-50 transition-colors"
-              >
-                {link.name}
-              </Link>
-            ))}
+            >
+                Home
+            </Link>
+
+            {/* Mobile Accordion for Main Groups */}
+            {MAIN_GROUPS.map((group) => {
+              const subCats = menuStructure[group];
+              const hasSubCats = subCats && subCats.length > 0;
+              const isExpanded = expandedMobileGroup === group;
+
+              if (!hasSubCats) return null;
+
+              return (
+                <div key={group} className="border-b border-gray-50">
+                  <button
+                    onClick={() => toggleMobileGroup(group)}
+                    className="w-full flex items-center justify-between px-6 py-4 text-sm font-bold uppercase tracking-wide text-gray-700 hover:bg-gray-50 hover:text-[#2b4736] transition-colors"
+                  >
+                    {group}
+                    {isExpanded ? <Minus className="w-4 h-4 text-[#2b4736]" /> : <Plus className="w-4 h-4 text-gray-400" />}
+                  </button>
+                  
+                  {/* Accordion Content */}
+                  <div className={`bg-gray-50 overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[500px]' : 'max-h-0'}`}>
+                    <ul className="flex flex-col py-2">
+                       {subCats.map(cat => (
+                         <li key={cat}>
+                           <Link
+                              to={`/kategorie/${getSlug(cat)}`}
+                              onClick={() => setIsMenuOpen(false)}
+                              className="block px-8 py-3 text-sm text-gray-600 hover:text-[#2b4736] border-l-2 border-transparent hover:border-[#2b4736] ml-6 transition-all"
+                           >
+                             {cat}
+                           </Link>
+                         </li>
+                       ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
+
+            <Link
+                to="/shop"
+                onClick={() => setIsMenuOpen(false)}
+                className="px-6 py-4 text-sm font-bold uppercase tracking-wide text-gray-700 hover:bg-gray-50 hover:text-[#2b4736] border-b border-gray-50 transition-colors"
+            >
+                Alle Artikel
+            </Link>
           </nav>
 
           {/* Mobile Utility Actions inside Drawer */}

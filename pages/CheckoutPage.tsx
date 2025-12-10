@@ -87,7 +87,7 @@ export const CheckoutPage: React.FC = () => {
             {isOrderSummaryOpenMobile ? 'Bestellübersicht ausblenden' : 'Bestellübersicht anzeigen'}
             {isOrderSummaryOpenMobile ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </span>
-          <span className="text-lg">{total.toFixed(2)} €</span>
+          <span className="text-lg">{(total || 0).toFixed(2)} €</span>
         </button>
       </div>
 
@@ -320,7 +320,7 @@ const OrderSummary: React.FC<{ items: any[]; subtotal: number; shipping: number;
                    <p className="text-[11px] text-gray-500 mt-0.5">{item.category}</p>
                 </div>
                 <div className="text-[13px] font-medium text-[#333] whitespace-nowrap">
-                   {( (item.salePrice || item.price) * item.quantity ).toFixed(2)} €
+                   {( (item.salePrice || item.price || 0) * item.quantity ).toFixed(2)} €
                 </div>
              </div>
           ))}
@@ -344,15 +344,15 @@ const OrderSummary: React.FC<{ items: any[]; subtotal: number; shipping: number;
        <div className="space-y-2 text-[13px] text-gray-600">
           <div className="flex justify-between">
              <span>Zwischensumme</span>
-             <span className="font-medium text-[#333]">{subtotal.toFixed(2)} €</span>
+             <span className="font-medium text-[#333]">{(subtotal || 0).toFixed(2)} €</span>
           </div>
           <div className="flex justify-between">
              <span>Versand</span>
-             <span className="font-medium text-[#333]">{shipping === 0 ? 'Kostenlos' : `${shipping.toFixed(2)} €`}</span>
+             <span className="font-medium text-[#333]">{shipping === 0 ? 'Kostenlos' : `${(shipping || 0).toFixed(2)} €`}</span>
           </div>
           <div className="flex justify-between">
              <span>MwSt. (19%)</span>
-             <span className="font-medium text-[#333]">{(subtotal * 0.19).toFixed(2)} €</span>
+             <span className="font-medium text-[#333]">{((subtotal || 0) * 0.19).toFixed(2)} €</span>
           </div>
        </div>
 
@@ -361,7 +361,7 @@ const OrderSummary: React.FC<{ items: any[]; subtotal: number; shipping: number;
        <div className="flex justify-between items-center">
           <span className="text-base font-bold text-[#333]">Gesamt</span>
           <div className="text-right">
-             <span className="text-xl font-bold text-[#1f3a34] block">{total.toFixed(2)} €</span>
+             <span className="text-xl font-bold text-[#1f3a34] block">{(total || 0).toFixed(2)} €</span>
              <span className="text-[10px] text-gray-400">inkl. MwSt.</span>
           </div>
        </div>
