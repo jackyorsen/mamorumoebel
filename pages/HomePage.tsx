@@ -5,12 +5,12 @@ import { ArrowRight } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ProductCard } from '../components/ProductCard';
 import { useProductsFromSheets } from '../hooks/useSheetsApi';
+import { OptimizedImage } from '../components/OptimizedImage';
 
 export const HomePage: React.FC = () => {
-  // Use the new Google Sheets API Hook
+  // Use the new Google Sheets API Hook with Caching
   const { products, loading } = useProductsFromSheets();
   
-  // Slice the first 4 items for the bestseller list logic, but ENSURE OOS items are pushed to end first
   const bestsellers = useMemo(() => {
     if (!products) return [];
     // Sort logic: In-stock first
@@ -22,7 +22,7 @@ export const HomePage: React.FC = () => {
     return sorted.slice(0, 4);
   }, [products]);
 
-  // Category Mock Data (Static for now)
+  // Category Mock Data
   const categories = [
     { 
       name: 'Wohnzimmer', 
@@ -47,17 +47,18 @@ export const HomePage: React.FC = () => {
       <section className="relative h-[450px] md:h-[520px] rounded-xl overflow-hidden flex items-center justify-center text-center shadow-lg">
         {/* Background Image */}
         <div className="absolute inset-0">
-            <img 
+            <OptimizedImage 
                 src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2000&auto=format&fit=crop" 
                 alt="Modern Interior" 
+                variant="full"
                 className="w-full h-full object-cover"
             />
             {/* Dark Overlay for readability */}
-            <div className="absolute inset-0 bg-black/30 md:bg-black/20" />
+            <div className="absolute inset-0 bg-black/30 md:bg-black/20 z-10" />
         </div>
 
         {/* Content */}
-        <div className="relative z-10 px-6 max-w-4xl mx-auto">
+        <div className="relative z-20 px-6 max-w-4xl mx-auto">
           <span className="inline-block py-1 px-3 border border-white/40 rounded-full text-white text-xs md:text-sm uppercase tracking-[0.2em] font-medium mb-6 backdrop-blur-sm">
             Neue Kollektion
           </span>
@@ -83,13 +84,14 @@ export const HomePage: React.FC = () => {
               key={idx} 
               className="group relative h-[300px] md:h-[380px] overflow-hidden rounded-lg block shadow-sm"
             >
-              <div className="absolute inset-0 bg-gray-900/10 group-hover:bg-gray-900/20 transition-colors z-10" />
-              <img
+              <div className="absolute inset-0 bg-gray-900/10 group-hover:bg-gray-900/20 transition-colors z-20" />
+              <OptimizedImage
                 src={cat.image}
                 alt={cat.name}
+                variant="small"
                 className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
               />
-              <div className="absolute bottom-8 left-8 z-20">
+              <div className="absolute bottom-8 left-8 z-30">
                 <h3 className="text-2xl font-bold text-white mb-1 drop-shadow-sm group-hover:translate-x-2 transition-transform duration-300">
                     {cat.name}
                 </h3>
@@ -124,11 +126,11 @@ export const HomePage: React.FC = () => {
           </Link>
         </div>
 
-        {/* Product Grid */}
+        {/* Product Grid - Using Skeleton or Products */}
         {loading ? (
              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
                 {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-[400px] bg-gray-100 animate-pulse rounded-lg"></div>
+                    <div key={i} className="h-[400px] bg-gray-100 skeleton rounded-lg"></div>
                 ))}
             </div>
         ) : (

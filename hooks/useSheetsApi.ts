@@ -2,9 +2,20 @@
 import { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { MOCK_PRODUCTS } from '../constants';
-import { getSlug } from '../utils/categoryHelper';
 
 const API_BASE = "https://script.google.com/macros/s/AKfycbzinjacRgHSovguDr80D0EA2qLuQRBlvkAK29As_K8bBJ1OWQtCRbogjEebAft2kFs/exec";
+
+// --- CLIENT SIDE CACHE ---
+// Stores data in memory to make navigation instant
+const CACHE: {
+  products: Product[] | null;
+  timestamp: number;
+} = {
+  products: null,
+  timestamp: 0
+};
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 export interface SheetProduct {
   sku: string;
@@ -20,12 +31,9 @@ export interface SheetProduct {
 }
 
 const mapSheetProductToAppProduct = (sp: SheetProduct): Product => {
-  // Ensure numerical values are parsed correctly and not null/undefined
   const price = typeof sp.price === 'number' ? sp.price : (parseFloat(String(sp.price)) || 0);
   const pricePrev = typeof sp.pricePrev === 'number' ? sp.pricePrev : (parseFloat(String(sp.pricePrev)) || 0);
   const stock = typeof sp.stock === 'number' ? sp.stock : (parseFloat(String(sp.stock)) || 0);
-  
-  // Determine if there is a sale (if previous price > current price)
   const isSale = pricePrev > price;
 
   return {
@@ -33,13 +41,11 @@ const mapSheetProductToAppProduct = (sp: SheetProduct): Product => {
     title: sp.name,
     description: sp.description,
     category: sp.category,
-    // If sale: price (display) is pricePrev (strikethrough), salePrice is price.
-    // If no sale: price (display) is price.
     price: isSale ? pricePrev : price,
     salePrice: isSale ? price : undefined,
     image: sp.images && sp.images.length > 0 ? sp.images[0] : 'https://via.placeholder.com/800x800?text=No+Image',
-    slug: sp.sku, // using SKU as slug for routing
-    isNew: false, // API doesn't provide date, default to false
+    slug: sp.sku,
+    isNew: false,
     sku: sp.sku,
     stock: stock,
     images: sp.images || [],
@@ -47,32 +53,61 @@ const mapSheetProductToAppProduct = (sp: SheetProduct): Product => {
   };
 };
 
+// PREFETCH FUNCTION (Call this on hover)
+export const prefetchProducts = async () => {
+  if (CACHE.products && (Date.now() - CACHE.timestamp < CACHE_DURATION)) {
+    return; // Already valid
+  }
+  try {
+     const response = await fetch(`${API_BASE}?action=products`);
+     if (response.ok) {
+        const data: SheetProduct[] = await response.json();
+        CACHE.products = data.map(mapSheetProductToAppProduct);
+        CACHE.timestamp = Date.now();
+     }
+  } catch (e) {
+     // Silent fail on prefetch
+  }
+};
+
 export function useProductsFromSheets() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [products, setProducts] = useState<Product[]>(CACHE.products || []);
+  const [loading, setLoading] = useState<boolean>(!CACHE.products);
   const [error, setError] = useState<any>(null);
 
   useEffect(() => {
+    // If we have cached data, we are done immediately
+    if (CACHE.products && (Date.now() - CACHE.timestamp < CACHE_DURATION)) {
+       setProducts(CACHE.products);
+       setLoading(false);
+       return;
+    }
+
     const fetchProducts = async () => {
+      // If we don't have data, show loading... but we might want to show MOCK data as Skeleton backdrop?
+      // For now, standard flow.
       setLoading(true);
       setError(null);
       try {
         const response = await fetch(`${API_BASE}?action=products`, {
-          cache: "no-store",
+          cache: "default", // Use browser HTTP cache if available
         });
 
-        if (!response.ok) {
-          throw new Error(`API Error: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
 
         const data: SheetProduct[] = await response.json();
         const mapped = data.map(mapSheetProductToAppProduct);
+        
+        // Update Cache
+        CACHE.products = mapped;
+        CACHE.timestamp = Date.now();
+        
         setProducts(mapped);
       } catch (err) {
         console.warn("Failed to fetch products, using fallback data:", err);
-        // Fallback to MOCK_PRODUCTS if API fails
         setProducts(MOCK_PRODUCTS);
-        // We do not set error state here to allow the UI to render with mock data
+        // Fill cache with mock so we don't retry endlessly
+        CACHE.products = MOCK_PRODUCTS; 
       } finally {
         setLoading(false);
       }
@@ -85,8 +120,11 @@ export function useProductsFromSheets() {
 }
 
 export function useProductFromSheets(sku: string | undefined) {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  // Try to find in cache first (INSTANT LOAD)
+  const cachedProduct = CACHE.products?.find(p => p.sku === sku || p.slug === sku || p.id === sku);
+  
+  const [product, setProduct] = useState<Product | null>(cachedProduct || null);
+  const [loading, setLoading] = useState<boolean>(!cachedProduct);
   const [error, setError] = useState<any>(null);
 
   useEffect(() => {
@@ -95,34 +133,30 @@ export function useProductFromSheets(sku: string | undefined) {
         return;
     }
 
+    // If we found it in cache, we still might want to re-validate in background, 
+    // but for "Instant Render", we rely on cache.
+    if (cachedProduct) {
+        setLoading(false);
+        return; 
+    }
+
+    // Fallback: Fetch specific if global cache missed
     const fetchProduct = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${API_BASE}?action=product&sku=${encodeURIComponent(sku)}`, {
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-           throw new Error(`API Error: ${response.statusText}`);
-        }
-
+        const response = await fetch(`${API_BASE}?action=product&sku=${encodeURIComponent(sku)}`);
+        if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
         const data: SheetProduct = await response.json();
         
-        // API returns a single object structure
         if (data && data.sku) {
              setProduct(mapSheetProductToAppProduct(data));
         } else {
-             throw new Error("Product not found in API");
+             throw new Error("Product not found");
         }
-
       } catch (err) {
-        console.warn("Failed to fetch product, using fallback data:", err);
-        
-        // Fallback Logic: Find in MOCK_PRODUCTS
-        // Check by SKU or Slug (since navigation might use slug)
+        // Fallback Logic
         const found = MOCK_PRODUCTS.find(p => p.sku === sku || p.slug === sku || p.id === sku);
-        
         if (found) {
             setProduct(found);
         } else {
@@ -134,7 +168,7 @@ export function useProductFromSheets(sku: string | undefined) {
     };
 
     fetchProduct();
-  }, [sku]);
+  }, [sku, cachedProduct]);
 
   return { product, loading, error };
 }

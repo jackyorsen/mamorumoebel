@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
+import { OptimizedImage } from './OptimizedImage';
+import { prefetchProducts } from '../hooks/useSheetsApi';
 
 interface ProductCardProps {
   product: Product;
@@ -15,26 +17,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const isOOS = product.isOutOfStock;
 
   const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation if clicked on button
+    e.preventDefault(); 
     if (isOOS) return;
     addToCart(product);
+  };
+
+  const handleMouseEnter = () => {
+     // Prefetch data when user hovers over a card, making the click instant
+     prefetchProducts();
   };
 
   return (
     <Link 
       to={`/product/${product.slug}`} 
       className={`group block h-full ${isOOS ? 'cursor-not-allowed' : ''}`}
-      onClick={(e) => {
-        // Optional: If you strictly want to block navigation on OOS cards, you could prevent default here.
-        // However, requirements say "Price text becomes gray... Keep full product information visible"
-        // usually implies interaction to see details is allowed. 
-        // We will keep navigation enabled to let users sign up for notifications.
-      }}
+      onMouseEnter={handleMouseEnter}
     >
       <div className={`bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100 h-full flex flex-col relative transition-all duration-300 ${!isOOS ? 'hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)]' : ''}`}>
         
         {/* Badges */}
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+        <div className="absolute top-3 left-3 z-20 flex flex-col gap-2 pointer-events-none">
           {isOOS ? (
              <span className="bg-[#d9534f] text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm shadow-sm">
                Ausverkauft
@@ -55,20 +57,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
 
-        {/* Image Container */}
-        <div className={`relative aspect-[4/5] overflow-hidden bg-gray-50 ${isOOS ? 'opacity-55' : ''}`}>
-          <img
+        {/* Image Container with Optimized Image */}
+        <div className={`relative aspect-[4/5] overflow-hidden bg-gray-100 ${isOOS ? 'opacity-55' : ''}`}>
+          <OptimizedImage
             src={product.image}
             alt={product.title}
-            className={`w-full h-full object-cover transition-transform duration-700 ${!isOOS ? 'group-hover:scale-105 opacity-100' : 'grayscale-[40%]'}`}
-            loading="lazy"
+            variant="small"
+            className={`w-full h-full object-cover transition-transform duration-700 ${!isOOS ? 'group-hover:scale-105' : 'grayscale-[40%]'}`}
           />
           
-          {/* Quick Add Button - Only show if in stock */}
+          {/* Quick Add Button */}
           {!isOOS && (
             <button
               onClick={handleAddToCart}
-              className="absolute bottom-4 right-4 bg-white text-[#2b4736] p-3 rounded-full shadow-md opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:bg-[#2b4736] hover:text-white focus:opacity-100 focus:translate-y-0"
+              className="absolute bottom-4 right-4 bg-white text-[#2b4736] p-3 rounded-full shadow-md opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:bg-[#2b4736] hover:text-white focus:opacity-100 focus:translate-y-0 z-30"
               aria-label="In den Warenkorb"
             >
               <ShoppingCart className="w-5 h-5" />

@@ -4,6 +4,7 @@ import { X, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { Button } from './Button';
 import { Link } from 'react-router-dom';
+import { OptimizedImage } from './OptimizedImage';
 
 export const CartDrawer: React.FC = () => {
   const { isCartOpen, closeCart, items, removeFromCart, updateQuantity, cartTotal } = useCart();
@@ -73,11 +74,11 @@ export const CartDrawer: React.FC = () => {
                 return (
                   <div key={item.id} className="flex gap-4 py-5 border-b border-gray-100 last:border-0 group">
                     <div className="w-20 h-24 flex-shrink-0 bg-gray-50 rounded-sm overflow-hidden border border-gray-100 relative">
-                       <img 
+                       <OptimizedImage 
                         src={item.image} 
                         alt={item.title} 
+                        variant="small"
                         className="w-full h-full object-cover" 
-                        loading="lazy"
                       />
                     </div>
                     

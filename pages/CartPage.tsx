@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { Button } from '../components/Button';
+import { OptimizedImage } from '../components/OptimizedImage';
 
 export const CartPage: React.FC = () => {
   const { items, updateQuantity, removeFromCart, cartTotal } = useCart();
@@ -31,12 +32,12 @@ export const CartPage: React.FC = () => {
              const effectivePrice = item.salePrice ?? item.price;
              return (
             <div key={item.id} className="flex flex-col sm:flex-row gap-6 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-              <Link to={`/product/${item.slug}`} className="shrink-0">
-                <img 
+              <Link to={`/product/${item.slug}`} className="shrink-0 w-24 h-24 sm:w-32 sm:h-32">
+                <OptimizedImage 
                   src={item.image} 
                   alt={item.title} 
-                  className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-md" 
-                  loading="lazy"
+                  variant="small"
+                  className="w-full h-full object-cover rounded-md" 
                 />
               </Link>
               
