@@ -12,7 +12,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     <div className="flex flex-col min-h-screen bg-[#f7f7f7]">
       <CartDrawer />
       <Header />
-      <main className="flex-grow w-full max-w-[1320px] mx-auto px-4 md:px-8 py-8">
+      <main className="flex-grow w-full">
         {children}
       </main>
       <Footer />

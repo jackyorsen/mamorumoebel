@@ -1,16 +1,19 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { getOptimizedImage } from '../utils/imageOptimizer';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
   variant?: 'small' | 'full'; // small for grids (300px), full for details
-  className?: string;
+  className?: string; // Applied to the wrapper div
+  imgClassName?: string; // Applied directly to the img tag
 }
 
 export const OptimizedImage: React.FC<OptimizedImageProps> = ({ 
   src, 
   variant = 'small', 
   className = '', 
+  imgClassName = '',
   alt,
   ...props 
 }) => {
@@ -76,7 +79,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         <img
             src={currentSrc}
             alt={alt}
-            className={`optimized-img relative z-10 ${isLoaded ? 'loaded' : ''}`}
+            className={`optimized-img relative z-10 ${isLoaded ? 'loaded' : ''} ${imgClassName}`}
             loading="lazy"
             {...props}
         />

@@ -42,7 +42,7 @@ export const ShopPage: React.FC = () => {
   }, [products, sortValue]);
 
   return (
-    <div className="w-full">
+    <div className="max-w-[1320px] mx-auto px-4 md:px-8 py-8 w-full">
       {/* Page Title & Filter Bar */}
       <div className="bg-white p-6 md:p-8 rounded-lg mb-8 shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
         
